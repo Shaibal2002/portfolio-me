@@ -1,1 +1,69 @@
-/* You can add global styles to this file, and also import other style files */
+/* ─────────────────────────────────────────────────────
+   src/styles.css  (global styles)
+───────────────────────────────────────────────────── */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;      /* ← THIS is what allows the page to scroll */
+  background: #03020d;
+  color: #f0eeff;
+}
+
+app-root {
+  display: block;        /* ← ensures app-root doesn't collapse */
+}
+
+/* Make hero icon anchors look identical to the original divs */
+a.icon {
+  text-decoration: none;
+  color: rgba(240, 238, 255, 0.6);
+}
+
+
+/* ═══════════════════════════════════════════════
+   PURE CSS TYPEWRITER — 3 cycling phrases
+   Each phrase gets its own keyframe set.
+   Total cycle = 3 phrases × 4s each = 12s loop.
+═══════════════════════════════════════════════ */
+
+.typewriter {
+  position: relative;
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(14px, 1.8vw, 20px);
+  font-weight: 500;
+  color: #f0eeff;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* The text is set via ::before, cycling through phrases */
+.typewriter::before {
+  content: 'Problem Solver';
+  animation: tw-words 12s steps(1) infinite;
+}
+
+/* Blinking cursor via ::after */
+.typewriter::after {
+  content: '|';
+  position: absolute;
+  right: -6px;
+  color: #6c63ff;
+  animation: tw-blink 0.75s step-end infinite;
+}
+
+/* Cycle the text content every 4s */
+@keyframes tw-words {
+  0%,  30%  { content: 'Problem Solver'; }
+  33%, 63%  { content: 'Software Developer'; }
+  66%, 96%  { content: 'Systems Engineer'; }
+  100%      { content: 'Problem Solver'; }
+}
+
+@keyframes tw-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
