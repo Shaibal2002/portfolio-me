@@ -117,13 +117,22 @@ export class App implements AfterViewInit, OnDestroy {
   navScrollTo(id: string): void {
     const el = document.getElementById(id);
     if (!el) return;
-    const p = this.findScrollParent();
-    p.scrollTo({ top: p.scrollTop + el.getBoundingClientRect().top - p.getBoundingClientRect().top, behavior: 'smooth' });
+    // Use window.scrollTo — works reliably on all mobile browsers
+    const top = el.getBoundingClientRect().top + window.scrollY - 60;
+    window.scrollTo({ top, behavior: 'smooth' });
   }
 
   mobileNavTo(id: string): void {
-    this.toggleMobileMenu();
-    setTimeout(() => this.navScrollTo(id), 350);
+    // Close menu and fully restore scroll before navigating
+    this._menuOpen = false;
+    const menu = document.getElementById('mobileMenu');
+    const hamburger = document.getElementById('hamburger');
+    if (menu) menu.classList.remove('open');
+    if (hamburger) hamburger.classList.remove('open');
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    setTimeout(() => this.navScrollTo(id), 400);
   }
 
   toggleMobileMenu(): void {
@@ -132,12 +141,21 @@ export class App implements AfterViewInit, OnDestroy {
     const hamburger = document.getElementById('hamburger');
     if (menu)      menu.classList.toggle('open', this._menuOpen);
     if (hamburger) hamburger.classList.toggle('open', this._menuOpen);
-    document.body.style.overflow = this._menuOpen ? 'hidden' : '';
+    // Only lock scroll on body — never on html/documentElement
+    // And always restore it fully when closing
+    if (this._menuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
   }
 
   scrollToTop(): void {
-    const p = this.findScrollParent();
-    p.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ── CV Download ───────────────────────────────────────────────────────────
@@ -154,9 +172,12 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private findScrollParent(): HTMLElement {
-    for (const el of [document.documentElement, document.body, document.querySelector('app-root') as HTMLElement])
-      if (el?.scrollHeight > el?.clientHeight) return el;
-    return document.documentElement;
+    // On mobile, window.scrollY is the source of truth.
+    // Always scroll via documentElement (standard) or body (iOS fallback).
+    if (document.documentElement.scrollHeight > document.documentElement.clientHeight) {
+      return document.documentElement;
+    }
+    return document.body;
   }
 
   // ── Scroll progress bar ───────────────────────────────────────────────────
@@ -179,9 +200,10 @@ export class App implements AfterViewInit, OnDestroy {
   private initBackToTop(): void {
     const btn = document.getElementById('backToTop');
     if (!btn) return;
-    window.addEventListener('scroll', () => {
-      btn.classList.toggle('visible', window.scrollY > 400);
-    });
+    // Use both scroll events for cross-browser mobile support
+    const check = () => btn.classList.toggle('visible', window.scrollY > 400);
+    window.addEventListener('scroll', check, { passive: true });
+    document.addEventListener('scroll', check, { passive: true });
   }
 
   // ── Active nav highlight on scroll ────────────────────────────────────────

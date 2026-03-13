@@ -2,12 +2,30 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:host { display: block; background: #03020d; filter: saturate(1.5); }
+:host {
+  display: block;
+  background: #03020d;
+  filter: saturate(1.5);
+  /* Critical: host element must never trap scroll */
+  overflow-x: hidden;
+  overflow-y: visible !important;
+}
+
+/* Global scroll fix for mobile */
+html, body {
+  overflow-x: hidden;
+  /* Never set overflow-y here - it kills mobile scroll */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
 
 /* ═══ HERO ═══════════════════════════════════════════ */
 .hero {
   height: 100vh; min-height: 700px; position: relative;
-  background: #03020d; color: #f0eeff; font-family: 'Outfit', sans-serif; overflow: hidden;
+  background: #03020d; color: #f0eeff; font-family: 'Outfit', sans-serif;
+  /* overflow:hidden removed — it blocks mobile touch scroll */
+  overflow: clip; /* clips visually but doesn't create scroll container */
+  overflow-clip-margin: 0px;
 }
 
 /* ── Custom Cursor ── */
@@ -146,6 +164,10 @@
   position: fixed; inset: 0; background: rgba(3,2,13,.6);
   backdrop-filter: blur(4px); z-index: 299;
   opacity: 0; transition: opacity .35s;
+  pointer-events: none; /* don't intercept clicks when menu is closed */
+}
+.mobile-menu.open .mobile-menu__backdrop {
+  pointer-events: all; /* only intercept clicks when menu is open */
 }
 .mobile-menu__panel {
   position: fixed; top: 0; right: 0; bottom: 0; width: min(320px, 85vw);
@@ -396,13 +418,31 @@
   .float-tags { display: none; }
   .grid-overlay { display: none; }
   .cursor-dot, .cursor-ring { display: none; }
+  .model-canvas { pointer-events: none !important; touch-action: none; }
 }
 @media (max-width: 600px) {
-  .hero-content { right: 4%; }
-  .name { font-size: clamp(48px, 13vw, 72px); }
+  /* Fix scroll: hero overflow:hidden traps touch scroll */
+  .hero { overflow-x: hidden; overflow-y: visible; height: 100svh; min-height: 600px; }
+  /* Fix model: reposition so Among Us is fully visible */
+  .model-canvas {
+    width: 88vw !important;
+    height: 88vw !important;
+    top: auto !important;
+    bottom: -4% !important;
+    left: 12% !important;
+    right: auto !important;
+  }
+  /* Hero text stays above model */
+  .hero-content {
+    top: 60px; transform: none;
+    right: 4%; z-index: 155;
+  }
+  .name { font-size: clamp(44px, 12vw, 66px); }
   .stat-chips { flex-wrap: wrap; }
   .cv-btn { font-size: 9px; padding: 0 14px; }
   .back-to-top { bottom: 20px; right: 20px; }
+  .hero-actions { flex-wrap: wrap; gap: 10px; }
+  .scroll-cta { display: none; }
 }
 
 /* ═══ SHARED SECTION UTILITIES ════════════════════════ */
