@@ -419,23 +419,21 @@ html, body {
   .grid-overlay { display: none; }
   .cursor-dot, .cursor-ring { display: none; }
   .model-canvas { pointer-events: none !important; touch-action: none; }
+  .logo { display: none; }
 }
 @media (max-width: 600px) {
   /* Fix scroll: hero overflow:hidden traps touch scroll */
   .hero { overflow-x: hidden; overflow-y: visible; height: 100svh; min-height: 600px; }
-  /* Fix model: reposition so Among Us is fully visible */
+  /* Canvas position is set by JS on mobile — just ensure no interference */
   .model-canvas {
-    width: 88vw !important;
-    height: 88vw !important;
-    top: auto !important;
-    bottom: -4% !important;
-    left: 12% !important;
-    right: auto !important;
+    pointer-events: none !important;
+    touch-action: none !important;
+    opacity: 0.9;
   }
-  /* Hero text stays above model */
+  /* Hero text: vertically centered, SM logo hidden so no overlap */
   .hero-content {
-    top: 60px; transform: none;
-    right: 4%; z-index: 155;
+    top: 50%; transform: translateY(-50%);
+    left: 28px; right: 4%; z-index: 155;
   }
   .name { font-size: clamp(44px, 12vw, 66px); }
   .stat-chips { flex-wrap: wrap; }

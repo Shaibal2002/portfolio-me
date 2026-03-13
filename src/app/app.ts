@@ -87,6 +87,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
+    this.forceScrollFix();
     this.initAurora();
     this.initTypewriter();
     this.bindMouse();
@@ -97,6 +98,34 @@ export class App implements AfterViewInit, OnDestroy {
     this.initScrollProgress();
     this.initBackToTop();
     this.initActiveNav();
+  }
+
+  private forceScrollFix(): void {
+    // Nuclear scroll fix — override anything blocking scroll
+    const style = document.createElement('style');
+    style.innerHTML = `
+      html {
+        height: auto !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      body {
+        height: auto !important;
+        min-height: 100vh !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        position: static !important;
+      }
+      app-root {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+        position: static !important;
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   ngOnDestroy(): void {
@@ -359,9 +388,22 @@ export class App implements AfterViewInit, OnDestroy {
     if (!THREE?.OBJLoader) return;
     const canvas = document.querySelector<HTMLCanvasElement>('.model-canvas');
     if (!canvas) return;
-    const W = window.innerWidth, H = window.innerHeight;
+    // Always block pointer/touch so canvas never delays scroll
+    canvas.style.pointerEvents = 'none';
+    canvas.style.touchAction = 'none';
+    const isMobile = window.innerWidth <= 600;
+    const W = isMobile ? Math.round(window.innerWidth * 0.62) : window.innerWidth;
+    const H = isMobile ? Math.round(window.innerWidth * 0.62) : window.innerHeight;
     canvas.width = W; canvas.height = H;
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    if (isMobile) {
+      // Position canvas bottom-right, covering right half
+      canvas.style.position = 'absolute';
+      canvas.style.top = 'auto';
+      canvas.style.bottom = '-5%';
+      canvas.style.left = 'auto';
+      canvas.style.right = '-15%';
+    }
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
@@ -369,7 +411,8 @@ export class App implements AfterViewInit, OnDestroy {
     this.threeRenderer = renderer;
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 100);
-    camera.position.set(0, 0.1, 4.5);
+    // On mobile: zoom in and center the model
+    camera.position.set(isMobile ? 0 : 0, isMobile ? 0.1 : 0.1, isMobile ? 4.2 : 4.5);
     camera.lookAt(0, 0, 0);
     scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     const key = new THREE.DirectionalLight(0xd4c8ff, 4.5);
@@ -381,7 +424,7 @@ export class App implements AfterViewInit, OnDestroy {
     const pink = new THREE.DirectionalLight(0xf472b6, 0.7);
     pink.position.set(0, -4, 2); scene.add(pink);
     const group = new THREE.Group();
-    group.position.set(1.4, 0.0, 0);
+    group.position.set(isMobile ? 0 : 1.4, 0.0, 0);
     group.rotation.x = 0.05; group.rotation.y = -0.5;
     scene.add(group);
     const LERP = 0.065;
@@ -392,7 +435,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.parallaxCurrentY += (this.parallaxTargetY - this.parallaxCurrentY) * LERP;
       group.rotation.y = -0.5 + Math.sin(this.autoRotY) * 0.3 + this.parallaxCurrentX * 0.55;
       group.rotation.x = 0.05 + this.parallaxCurrentY * 0.32;
-      group.position.x = 1.4 + this.parallaxCurrentX * 0.1;
+      group.position.x = (isMobile ? 0 : 1.4) + this.parallaxCurrentX * 0.1;
       group.position.y = 0.0 + Math.sin(this.autoRotY * 0.8) * 0.05 + this.parallaxCurrentY * 0.07;
       renderer.render(scene, camera);
     };
