@@ -1,22 +1,37 @@
 <!-- ═══════════════════════ HERO ═══════════════════════ -->
 <div class="hero">
+  <!-- Custom cursor -->
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
   <!-- z-0: aurora background -->
   <canvas #auroraCanvas class="aurora-canvas"></canvas>
 
-  <!-- z-1: Three.js model — covers full viewport, model rendered into right half via camera.setViewOffset -->
+  <!-- z-1: particle layer -->
+  <canvas class="particle-canvas" id="particleCanvas"></canvas>
+
+  <!-- z-2: Three.js model -->
   <canvas class="model-canvas"></canvas>
 
-  <!-- z-2: atmospheric glow on right side to frame the model -->
+  <!-- z-3: atmospheric glow -->
   <div class="model-glow"></div>
 
-  <!-- z-3: vignette + scanlines -->
+  <!-- z-4: perspective grid overlay -->
+  <div class="grid-overlay"></div>
+
+  <!-- z-5: noise texture -->
+  <div class="noise-overlay"></div>
+
+  <!-- z-6: vignette + scanlines -->
   <div class="vignette"></div>
   <div class="scanlines"></div>
 
   <!-- z-10: navbar -->
-  <nav class="navbar">
+  <nav class="navbar" id="navbar">
     <div class="logo">SM</div>
-    <ul>
+
+    <!-- Desktop links -->
+    <ul class="nav-links">
       <li (click)="navScrollTo('about')">About</li>
       <li (click)="navScrollTo('skills')">Skills</li>
       <li (click)="navScrollTo('experience')">Experience</li>
@@ -25,18 +40,60 @@
       <li (click)="navScrollTo('certifications')">Certs</li>
       <li (click)="navScrollTo('contact')">Contact</li>
     </ul>
+
+    <!-- Hamburger button (mobile) -->
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu" (click)="toggleMobileMenu()">
+      <span></span><span></span><span></span>
+    </button>
+
     <div class="nav-line"></div>
   </nav>
 
-  <!-- z-10: hero text — anchored LEFT, well away from right-side model -->
+  <!-- Mobile drawer -->
+  <div class="mobile-menu" id="mobileMenu">
+    <div class="mobile-menu__backdrop" id="menuBackdrop" (click)="toggleMobileMenu()"></div>
+    <div class="mobile-menu__panel">
+      <div class="mobile-menu__header">
+        <span class="mobile-menu__logo">SM</span>
+        <button class="mobile-menu__close" (click)="toggleMobileMenu()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <ul class="mobile-nav-links">
+        <li (click)="mobileNavTo('about')"><span class="mnl-num">01</span>About</li>
+        <li (click)="mobileNavTo('skills')"><span class="mnl-num">02</span>Skills</li>
+        <li (click)="mobileNavTo('experience')"><span class="mnl-num">03</span>Experience</li>
+        <li (click)="mobileNavTo('education')"><span class="mnl-num">04</span>Education</li>
+        <li (click)="mobileNavTo('projects')"><span class="mnl-num">05</span>Projects</li>
+        <li (click)="mobileNavTo('certifications')"><span class="mnl-num">06</span>Certs</li>
+        <li (click)="mobileNavTo('contact')"><span class="mnl-num">07</span>Contact</li>
+      </ul>
+      <div class="mobile-menu__footer">
+        <a class="mobile-cv-btn" (click)="downloadCV()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download CV
+        </a>
+        <div class="mobile-menu__socials">
+          <a href="https://www.linkedin.com/in/shaibal-mallick" target="_blank">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          </a>
+          <a href="https://github.com/Shaibal2002" target="_blank">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- hero text -->
   <div class="hero-content">
-    <p class="intro">
-      <span class="intro-line"></span>
-      HELLO, I'M
-      <span class="intro-line"></span>
-    </p>
+    <div class="eyebrow">
+      <span class="eyebrow-line"></span>
+      <span class="eyebrow-text">Hello, I'm</span>
+    </div>
 
     <h1 class="name">
+      <div class="name-bracket"></div>
       <span class="gradient-text">SHAIBAL</span><br>
       <span class="name-plain">MALLICK</span>
     </h1>
@@ -45,19 +102,60 @@
       I am a&nbsp;<span class="typed-word"></span><span class="cursor">|</span>
     </h2>
 
-    <div class="icons">
-      <a class="icon" title="LinkedIn" href="https://www.linkedin.com/in/shaibal-mallick" target="_blank" rel="noopener">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-      </a>
-      <a class="icon" title="GitHub" href="https://github.com/Shaibal2002" target="_blank" rel="noopener">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-      </a>
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      Available for opportunities
+    </div>
+
+    <div class="hero-actions">
+      <div class="icons">
+        <a class="icon" title="LinkedIn" href="https://www.linkedin.com/in/shaibal-mallick" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        </a>
+        <a class="icon" title="GitHub" href="https://github.com/Shaibal2002" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        </a>
+        <a class="icon" title="CodePen" href="https://codepen.io/Shaibal-Mallick" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </a>
+      </div>
+
+      <!-- Download CV button -->
+      <button class="cv-btn" (click)="downloadCV()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download CV
+      </button>
+    </div>
+
+    <div class="stat-chips">
+      <div class="stat-chip">
+        <span class="stat-chip-num">1.5+</span>
+        <span class="stat-chip-label">Yrs Experience</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-chip-num">10+</span>
+        <span class="stat-chip-label">Technologies</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-chip-num">C1</span>
+        <span class="stat-chip-label">TCS Engineer</span>
+      </div>
     </div>
 
     <div class="scroll-cta">
       <div class="scroll-track"><div class="scroll-thumb"></div></div>
-      <span>SCROLL</span>
+      <span>Scroll to explore</span>
     </div>
+  </div>
+
+  <!-- Floating skill tags -->
+  <div class="float-tags">
+    <span class="float-tag">Spring Boot</span>
+    <span class="float-tag">Angular</span>
+    <span class="float-tag">Python</span>
+    <span class="float-tag">Azure</span>
+    <span class="float-tag">SQL</span>
+    <span class="float-tag">Node.js</span>
   </div>
 </div>
 
@@ -93,6 +191,16 @@
               <span class="bio-tag">Data Analytics</span>
               <span class="bio-tag">Problem Solving</span>
             </div>
+
+            <!-- Languages spoken — NEW -->
+            <div class="bio-languages">
+              <span class="bio-lang-label">Languages</span>
+              <div class="bio-lang-list">
+                <span class="bio-lang"><span class="bio-lang__flag">🇮🇳</span>Hindi</span>
+                <span class="bio-lang"><span class="bio-lang__flag">🇬🇧</span>English</span>
+                <span class="bio-lang"><span class="bio-lang__flag">🇧🇩</span>Bengali</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -124,6 +232,7 @@
         <div class="chip" style="--i:7"><span class="chip__dot"></span>Azure Cognitive Services</div>
         <div class="chip" style="--i:8"><span class="chip__dot"></span>Data Analytics</div>
         <div class="chip" style="--i:9"><span class="chip__dot"></span>AWS</div>
+        <div class="chip" style="--i:10"><span class="chip__dot"></span>Geofencing / Maps API</div>
       </div>
     </div>
     <div class="skills-group">
@@ -238,15 +347,68 @@
     <div class="section-label"><span class="label-num">05</span><span class="label-line"></span><span class="label-text">PROJECTS</span></div>
     <h2 class="section-heading">THINGS I'VE<br><span class="gradient-text">BUILT</span></h2>
     <div class="projects-grid">
-      <div class="proj-card scroll-reveal" style="--di:0">
+
+      <!-- Project 1 — Doctor Geofencing (FEATURED) -->
+      <div class="proj-card proj-card--featured scroll-reveal" style="--di:0">
+        <div class="proj-card__featured-badge">Featured</div>
         <div class="proj-card__top">
-          <div class="proj-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="3"/><path d="M2 21v-1a7 7 0 0 1 14 0v1"/><path d="M18 8.5a2.5 2.5 0 1 1 0-5"/><path d="M22 21v-1a4 4 0 0 0-3-3.85"/></svg></div>
-          <div class="proj-card__links"><span class="proj-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg></span></div>
+          <div class="proj-card__icon proj-card__icon--cyan">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div class="proj-card__links">
+            <a class="proj-link" href="https://github.com/Shaibal2002" target="_blank" title="GitHub">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+            </a>
+          </div>
+        </div>
+        <h3 class="proj-title">Real-Time Doctor Finder — Geofencing</h3>
+        <p class="proj-desc">A full-stack healthcare platform with live map-based doctor discovery using geofencing. Patients browse nearby doctors on an interactive map, select and book appointments in real time. Built four complete apps — Admin, Doctor, Patient, and Receptionist — each with dedicated workflows.</p>
+        <!-- App breakdown chips — NEW -->
+        <div class="proj-apps">
+          <span class="proj-app-chip proj-app-chip--admin">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Admin App
+          </span>
+          <span class="proj-app-chip proj-app-chip--doctor">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Doctor App
+          </span>
+          <span class="proj-app-chip proj-app-chip--patient">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Patient App
+          </span>
+          <span class="proj-app-chip proj-app-chip--receptionist">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            Receptionist App
+          </span>
+        </div>
+        <div class="proj-tags">
+          <span class="proj-tag">Angular</span>
+          <span class="proj-tag">Geofencing</span>
+          <span class="proj-tag">Maps API</span>
+          <span class="proj-tag">Node.js</span>
+          <span class="proj-tag">Real-time</span>
+          <span class="proj-tag">Spring Boot</span>
+        </div>
+      </div>
+
+      <!-- Project 2 — Azure Face Recognition -->
+      <div class="proj-card scroll-reveal" style="--di:1">
+        <div class="proj-card__top">
+          <div class="proj-card__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="3"/><path d="M2 21v-1a7 7 0 0 1 14 0v1"/><path d="M18 8.5a2.5 2.5 0 1 1 0-5"/><path d="M22 21v-1a4 4 0 0 0-3-3.85"/></svg>
+          </div>
+          <div class="proj-card__links">
+            <a class="proj-link" href="https://github.com/Shaibal2002" target="_blank" title="GitHub">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+            </a>
+          </div>
         </div>
         <h3 class="proj-title">Face Recognition Tool Using Azure</h3>
         <p class="proj-desc">Built a face recognition application leveraging Azure Cognitive Services Face API. Implements face detection, identification, and verification with a clean web interface.</p>
         <div class="proj-tags"><span class="proj-tag">Azure</span><span class="proj-tag">Cognitive Services</span><span class="proj-tag">Python</span><span class="proj-tag">Face API</span></div>
       </div>
+
     </div>
   </div>
 </section>
@@ -311,9 +473,10 @@
         <div class="contact-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
         <span class="contact-card__label">CodePen</span>
       </a>
-      <a class="contact-card scroll-reveal" style="--di:4" href="#" target="_blank">
-        <div class="contact-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
-        <span class="contact-card__label">Portfolio</span>
+      <!-- Download CV in contact -->
+      <a class="contact-card scroll-reveal" style="--di:4" (click)="downloadCV()">
+        <div class="contact-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+        <span class="contact-card__label">Download CV</span>
       </a>
       <div class="contact-card contact-card--static scroll-reveal" style="--di:5">
         <div class="contact-card__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
@@ -322,6 +485,11 @@
     </div>
   </div>
   <footer class="footer">
-    <p>© 2024 Shaibal Mallick <span class="footer-heart">♥</span></p>
+    <p>© 2025 Shaibal Mallick <span class="footer-heart">♥</span></p>
   </footer>
 </section>
+
+<!-- Back to top button -->
+<button class="back-to-top" id="backToTop" (click)="scrollToTop()" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+</button>

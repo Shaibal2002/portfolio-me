@@ -9,13 +9,11 @@ import {
   ElementRef,
   ViewEncapsulation,
 } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
   encapsulation: ViewEncapsulation.None,
@@ -45,8 +43,26 @@ export class App implements AfterViewInit, OnDestroy {
   private parallaxCurrentY = 0;
   private autoRotY = 0;
 
+  // Particles
+  private particleRafId = 0;
+  private particles: Array<{
+    x: number; y: number; r: number;
+    vx: number; vy: number; o: number; warm: boolean;
+  }> = [];
+
+  // Cursor
+  private cursorRafId = 0;
+  private cursorRingX = 0;
+  private cursorRingY = 0;
+  private cursorTargetX = 0;
+  private cursorTargetY = 0;
+
+  // Mobile menu state
+  private _menuOpen = false;
+
   private typingTimeout: ReturnType<typeof setTimeout> | null = null;
   private scrollObserver!: IntersectionObserver;
+  private scrollProgressBar!: HTMLElement;
 
   private readonly VERT = `attribute vec2 a_pos;void main(){gl_Position=vec4(a_pos,0.,1.);}`;
   private readonly FRAG = `
@@ -76,30 +92,133 @@ export class App implements AfterViewInit, OnDestroy {
     this.bindMouse();
     this.initScrollAnimations();
     this.initThree();
+    this.initParticles();
+    this.initCustomCursor();
+    this.initScrollProgress();
+    this.initBackToTop();
+    this.initActiveNav();
   }
 
   ngOnDestroy(): void {
     if (!isPlatformBrowser(this.platformId)) return;
     cancelAnimationFrame(this.auroraRafId);
     cancelAnimationFrame(this.threeRafId);
+    cancelAnimationFrame(this.particleRafId);
+    cancelAnimationFrame(this.cursorRafId);
     if (this.typingTimeout) clearTimeout(this.typingTimeout);
     if (this.scrollObserver) this.scrollObserver.disconnect();
     if (this.threeRenderer) this.threeRenderer.dispose();
     window.removeEventListener('mousemove', this.onMouse);
     window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('scroll', this.onScroll);
   }
 
+  // ── Navigation ────────────────────────────────────────────────────────────
   navScrollTo(id: string): void {
     const el = document.getElementById(id);
     if (!el) return;
     const p = this.findScrollParent();
     p.scrollTo({ top: p.scrollTop + el.getBoundingClientRect().top - p.getBoundingClientRect().top, behavior: 'smooth' });
   }
+
+  mobileNavTo(id: string): void {
+    this.toggleMobileMenu();
+    setTimeout(() => this.navScrollTo(id), 350);
+  }
+
+  toggleMobileMenu(): void {
+    this._menuOpen = !this._menuOpen;
+    const menu = document.getElementById('mobileMenu');
+    const hamburger = document.getElementById('hamburger');
+    if (menu)      menu.classList.toggle('open', this._menuOpen);
+    if (hamburger) hamburger.classList.toggle('open', this._menuOpen);
+    document.body.style.overflow = this._menuOpen ? 'hidden' : '';
+  }
+
+  scrollToTop(): void {
+    const p = this.findScrollParent();
+    p.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── CV Download ───────────────────────────────────────────────────────────
+  downloadCV(): void {
+    // Create a link to trigger download of CV PDF
+    // Replace 'Shaibal_Mallick_CV.pdf' with your actual CV filename/URL
+    const link = document.createElement('a');
+    link.href = '/Shaibal_Mallick_CV.pdf';
+    link.download = 'Shaibal_Mallick_CV.pdf';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   private findScrollParent(): HTMLElement {
     for (const el of [document.documentElement, document.body, document.querySelector('app-root') as HTMLElement])
       if (el?.scrollHeight > el?.clientHeight) return el;
     return document.documentElement;
   }
+
+  // ── Scroll progress bar ───────────────────────────────────────────────────
+  private initScrollProgress(): void {
+    // Inject a thin top progress bar
+    const bar = document.createElement('div');
+    bar.id = 'scrollProgressBar';
+    bar.style.cssText = `
+      position: fixed; top: 0; left: 0; height: 2px; width: 0%; z-index: 9999;
+      background: linear-gradient(90deg, #6c63ff, #22d3ee, #b06af5);
+      transition: width .1s linear;
+      box-shadow: 0 0 8px rgba(108,99,255,.6);
+      pointer-events: none;
+    `;
+    document.body.appendChild(bar);
+    this.scrollProgressBar = bar;
+  }
+
+  // ── Back to top button ─────────────────────────────────────────────────────
+  private initBackToTop(): void {
+    const btn = document.getElementById('backToTop');
+    if (!btn) return;
+    window.addEventListener('scroll', () => {
+      btn.classList.toggle('visible', window.scrollY > 400);
+    });
+  }
+
+  // ── Active nav highlight on scroll ────────────────────────────────────────
+  private initActiveNav(): void {
+    const sections = ['about','skills','experience','education','projects','certifications','contact'];
+    const navItems = document.querySelectorAll<HTMLElement>('.nav-links li');
+    const mobileNavItems = document.querySelectorAll<HTMLElement>('.mobile-nav-links li');
+
+    const activate = (idx: number) => {
+      navItems.forEach((li, i) => li.classList.toggle('active', i === idx));
+      mobileNavItems.forEach((li, i) => li.classList.toggle('active', i === idx));
+    };
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const idx = sections.indexOf(entry.target.id);
+          if (idx >= 0) activate(idx);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) io.observe(el);
+    });
+  }
+
+  // ── Scroll handler (progress bar) ─────────────────────────────────────────
+  private onScroll = (): void => {
+    if (this.scrollProgressBar) {
+      const scrolled = window.scrollY;
+      const total = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = total > 0 ? (scrolled / total) * 100 : 0;
+      this.scrollProgressBar.style.width = pct + '%';
+    }
+  };
 
   // ── Aurora ────────────────────────────────────────────────────────────────
   private initAurora(): void {
@@ -120,6 +239,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.startTime = performance.now();
     this.resizeAurora();
     this.renderAurora();
+    window.addEventListener('scroll', this.onScroll);
   }
   private resizeAurora(): void {
     const c = this.canvasRef?.nativeElement;
@@ -138,45 +258,97 @@ export class App implements AfterViewInit, OnDestroy {
     this.auroraRafId = requestAnimationFrame(this.renderAurora);
   };
 
+  // ── Particles ─────────────────────────────────────────────────────────────
+  private initParticles(): void {
+    const canvas = document.getElementById('particleCanvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
+    this.particles = Array.from({ length: 55 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.4 + 0.3,
+      vx: (Math.random() - 0.5) * 0.22,
+      vy: (Math.random() - 0.5) * 0.22,
+      o: Math.random() * 0.45 + 0.08,
+      warm: Math.random() > 0.5,
+    }));
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of this.particles) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.warm ? `rgba(108,99,255,${p.o})` : `rgba(34,211,238,${p.o})`;
+        ctx.fill();
+      }
+      this.particleRafId = requestAnimationFrame(draw);
+    };
+    draw();
+  }
+
+  // ── Custom Cursor ─────────────────────────────────────────────────────────
+  private initCustomCursor(): void {
+    const dot  = document.getElementById('cursorDot');
+    const ring = document.getElementById('cursorRing');
+    if (!dot || !ring) return;
+    if (window.matchMedia('(hover: none)').matches) {
+      dot.style.display = 'none'; ring.style.display = 'none'; return;
+    }
+    document.addEventListener('mousemove', (e) => {
+      this.cursorTargetX = e.clientX; this.cursorTargetY = e.clientY;
+      dot.style.left = e.clientX + 'px'; dot.style.top = e.clientY + 'px';
+    });
+    document.addEventListener('mouseover', (e) => {
+      const t = e.target as HTMLElement;
+      if (t.matches('a, button, li, .icon, .float-tag, .chip, .contact-card, .proj-card, .cert-card, .cv-btn')) {
+        dot.style.transform = 'translate(-50%,-50%) scale(2)';
+        ring.style.transform = 'translate(-50%,-50%) scale(1.5)';
+        ring.style.borderColor = 'rgba(108,99,255,.6)';
+      }
+    });
+    document.addEventListener('mouseout', () => {
+      dot.style.transform = 'translate(-50%,-50%) scale(1)';
+      ring.style.transform = 'translate(-50%,-50%) scale(1)';
+      ring.style.borderColor = 'rgba(108,99,255,.35)';
+    });
+    const animateCursor = () => {
+      this.cursorRingX += (this.cursorTargetX - this.cursorRingX) * 0.14;
+      this.cursorRingY += (this.cursorTargetY - this.cursorRingY) * 0.14;
+      ring.style.left = this.cursorRingX + 'px'; ring.style.top = this.cursorRingY + 'px';
+      this.cursorRafId = requestAnimationFrame(animateCursor);
+    };
+    animateCursor();
+  }
+
   // ── Three.js ──────────────────────────────────────────────────────────────
   private async initThree(): Promise<void> {
     try {
       await this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
       await this.loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js');
     } catch (e) { return; }
-
     const THREE = (window as any).THREE;
     if (!THREE?.OBJLoader) return;
-
-    // ── Use the EXISTING model-canvas from the HTML ──────────────────────
     const canvas = document.querySelector<HTMLCanvasElement>('.model-canvas');
     if (!canvas) return;
-
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    canvas.width  = W;
-    canvas.height = H;
-    canvas.style.width  = W + 'px';
-    canvas.style.height = H + 'px';
-
+    const W = window.innerWidth, H = window.innerHeight;
+    canvas.width = W; canvas.height = H;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
     renderer.setSize(W, H, false);
     this.threeRenderer = renderer;
-
     const scene = new THREE.Scene();
-
-    // ── Camera: wide FOV, positioned centrally, looks at world origin ────
-    // We shift the GROUP to the right in world space instead of using
-    // setViewOffset (which has unintuitive axis directions).
-    // At z=4.5, FOV=50, the visible horizontal half-width ≈ 4.5*tan(25°)≈2.1
-    // Placing the group at x=+1.1 puts it in the right ~45% of screen.
     const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 100);
     camera.position.set(0, 0.1, 4.5);
     camera.lookAt(0, 0, 0);
-
-    // ── Lights ────────────────────────────────────────────────────────────
     scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     const key = new THREE.DirectionalLight(0xd4c8ff, 4.5);
     key.position.set(-2, 3, 4); scene.add(key);
@@ -186,54 +358,36 @@ export class App implements AfterViewInit, OnDestroy {
     purple.position.set(-1, -3, -3); scene.add(purple);
     const pink = new THREE.DirectionalLight(0xf472b6, 0.7);
     pink.position.set(0, -4, 2); scene.add(pink);
-
-    // ── Model group — pushed RIGHT in world space ─────────────────────────
-    // FOV=50, z=4.5 → visible half-width ≈ 2.1 units
-    // x=+1.4 puts it in the rightmost ~30% of the screen
     const group = new THREE.Group();
     group.position.set(1.4, 0.0, 0);
-    group.rotation.x =  0.05;   // very slight forward tilt
-    group.rotation.y = -0.5;    // 3/4 angle
+    group.rotation.x = 0.05; group.rotation.y = -0.5;
     scene.add(group);
-
-    // ── Render loop ───────────────────────────────────────────────────────
     const LERP = 0.065;
     const tick = () => {
       this.threeRafId = requestAnimationFrame(tick);
       this.autoRotY += 0.005;
       this.parallaxCurrentX += (this.parallaxTargetX - this.parallaxCurrentX) * LERP;
       this.parallaxCurrentY += (this.parallaxTargetY - this.parallaxCurrentY) * LERP;
-
       group.rotation.y = -0.5 + Math.sin(this.autoRotY) * 0.3 + this.parallaxCurrentX * 0.55;
-      group.rotation.x =  0.05 + this.parallaxCurrentY * 0.32;
+      group.rotation.x = 0.05 + this.parallaxCurrentY * 0.32;
       group.position.x = 1.4 + this.parallaxCurrentX * 0.1;
       group.position.y = 0.0 + Math.sin(this.autoRotY * 0.8) * 0.05 + this.parallaxCurrentY * 0.07;
-
       renderer.render(scene, camera);
     };
     tick();
-
-    // ── Textures ─────────────────────────────────────────────────────────
     const tl = new THREE.TextureLoader();
     const tex = (u: string): Promise<any> => new Promise(r => tl.load(u, r, undefined, () => r(null)));
     const [albedo, ao, nrm, rough] = await Promise.all([
-      tex('Among_Us_Guy_Albedo.png'),
-      tex('Among_Us_Guy_AO.png'),
-      tex('Among_Us_Guy_Normal.png'),
-      tex('Among_Us_Guy_Roughness.png'),
+      tex('Among_Us_Guy_Albedo.png'), tex('Among_Us_Guy_AO.png'),
+      tex('Among_Us_Guy_Normal.png'), tex('Among_Us_Guy_Roughness.png'),
     ]);
     if (albedo) albedo.encoding = THREE.sRGBEncoding;
-
     const mat = new THREE.MeshStandardMaterial({
-      map: albedo ?? undefined,
-      aoMap: ao ?? undefined, aoMapIntensity: 1.0,
+      map: albedo ?? undefined, aoMap: ao ?? undefined, aoMapIntensity: 1.0,
       normalMap: nrm ?? undefined, normalScale: new THREE.Vector2(1.2, 1.2),
-      roughnessMap: rough ?? undefined,
-      roughness: 0.75, metalness: 0.2,
+      roughnessMap: rough ?? undefined, roughness: 0.75, metalness: 0.2,
       transparent: true, opacity: 0,
     });
-
-    // ── OBJ ──────────────────────────────────────────────────────────────
     new THREE.OBJLoader().load(
       'Among%20Us%20Guy_-_Sketchfab.obj',
       (obj: any) => {
@@ -250,7 +404,6 @@ export class App implements AfterViewInit, OnDestroy {
         obj.scale.setScalar(s);
         obj.position.set(-ctr.x * s, -ctr.y * s, -ctr.z * s);
         group.add(obj);
-
         let f = 0;
         const fade = () => {
           f++;
@@ -268,15 +421,12 @@ export class App implements AfterViewInit, OnDestroy {
         group.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x22d3ee, wireframe: true, transparent: true, opacity: 0.35 })));
       }
     );
-
-    // ── Resize ────────────────────────────────────────────────────────────
     this.onResize = () => {
       const nw = window.innerWidth, nh = window.innerHeight;
       canvas.width = nw; canvas.height = nh;
       canvas.style.width = nw + 'px'; canvas.style.height = nh + 'px';
       renderer.setSize(nw, nh, false);
-      camera.aspect = nw / nh;
-      camera.updateProjectionMatrix();
+      camera.aspect = nw / nh; camera.updateProjectionMatrix();
       this.resizeAurora();
     };
     window.addEventListener('resize', this.onResize);
